@@ -1,10 +1,17 @@
 import io.javalin.Javalin;
 
+import java.time.Duration;
+
 public class Main {
 
     public static void main(String[] args) {
         WebSocketConnection socketHandler = WebSocketMessenger.get();
-        Javalin app = Javalin.create();
+
+        Javalin app = Javalin.create(javalinConfig -> {
+            javalinConfig.jetty.modifyWebSocketServletFactory(jettyWebSocketServletFactory ->
+                    jettyWebSocketServletFactory.setIdleTimeout(Duration.ofSeconds(60))
+            );
+        });
 
         app.ws("/websocket", ws -> {
             ws.onConnect(socketHandler::connect);

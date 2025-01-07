@@ -4,6 +4,10 @@ public class Message {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String recipientId;
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String senderId;
+
     private String content;
 
     public Message() {
@@ -30,8 +34,16 @@ public class Message {
         this.content = content;
     }
 
-    public void prependSenderId(String senderId) {
-        this.content = String.format("[%s] : %s", senderId, this.content);
+    public void setRecipientId(String recipientId) {
+        this.recipientId = recipientId;
+    }
+
+    public String getSenderId() {
+        return senderId;
+    }
+
+    public void setSenderId(String senderId) {
+        this.senderId = senderId;
     }
 
     @Override

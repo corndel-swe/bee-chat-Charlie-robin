@@ -2,6 +2,8 @@ import io.javalin.websocket.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class WebSocketMessenger implements WebSocketConnection {
 
@@ -21,9 +23,16 @@ public class WebSocketMessenger implements WebSocketConnection {
         return context.sessionId().split("-")[0];
     }
 
-    private Message getUsersInChatMessage() {
-        String message = String.join(",", connections.keySet()) + " are in the chat.";
-        return new Message(message);
+    private Message getUsersInChatMessage(String senderId) {
+        String connectionsInChat = connections.keySet().stream().filter(id -> !id.equals(senderId)).collect(Collectors.joining(", "));
+        String content = connectionsInChat.isEmpty() ? "Chat is empty." : connectionsInChat + " are in the chat.";
+        return getMessengerMessage(content);
+    }
+
+    private Message getMessengerMessage(String content) {
+        Message message = new Message(content);
+        message.setSenderId("MESSENGER");
+        return message;
     }
 
     private void sendAllUserMessage(Message message) {
@@ -44,11 +53,9 @@ public class WebSocketMessenger implements WebSocketConnection {
     public void connect(WsConnectContext context) {
         System.out.println("Connected");
         String contextId = getShortContextId(context);
-        System.out.println(contextId);
         connections.put(contextId, new User(context.sessionId(), context));
-        System.out.println(connections);
-        replyUserMessage(getUsersInChatMessage(), context);
-        sendAllUserMessage(new Message(contextId + " has entered the chat."));
+        replyUserMessage(getUsersInChatMessage(contextId), context);
+        sendAllUserMessage(getMessengerMessage(contextId + " has entered the chat."));
     }
 
     @Override
@@ -58,16 +65,15 @@ public class WebSocketMessenger implements WebSocketConnection {
         String recipientId = message.getRecipientId();
         String contextId = getShortContextId(context);
 
-
         if (recipientId.isEmpty()) {
-            message.prependSenderId(contextId);
+            message.setSenderId(contextId);
             sendAllUserMessage(message);
         } else if (connections.containsKey(recipientId)) {
-            message.prependSenderId(contextId + "->" + recipientId);
+            message.setSenderId(contextId + "->" + recipientId);
             sendUserMessage(message);
             replyUserMessage(message, context);
         } else {
-            replyUserMessage(new Message(recipientId + " is not in the chat."), context);
+            replyUserMessage(getMessengerMessage(recipientId + " is not in the chat."), context);
         }
     }
 
@@ -76,7 +82,7 @@ public class WebSocketMessenger implements WebSocketConnection {
         System.out.println("Disconnect");
         String contextId = getShortContextId(context);
         connections.remove(contextId);
-        sendAllUserMessage(new Message(contextId + " has left the chat."));
+        sendAllUserMessage(getMessengerMessage(contextId + " has left the chat."));
     }
 
     @Override
