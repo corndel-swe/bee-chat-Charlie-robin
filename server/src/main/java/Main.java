@@ -5,6 +5,7 @@ import java.time.Duration;
 public class Main {
 
     public static void main(String[] args) {
+        WebSocketConnection socketHandler = WebSocketMessenger.get();
 
         Javalin app = Javalin.create(javalinConfig -> {
             // Modifying the WebSocketServletFactory to set the socket timeout to 120 seconds
@@ -13,24 +14,11 @@ public class Main {
             );
         });
 
-        app.ws("/", wsConfig -> {
-
-            wsConfig.onConnect((connectContext) -> {
-                System.out.println("Connected: " + connectContext.sessionId());
-            });
-
-            wsConfig.onMessage((messageContext) -> {
-                System.out.println("Message: " + messageContext.sessionId());
-            });
-
-            wsConfig.onClose((closeContext) -> {
-                System.out.println("Closed: " + closeContext.sessionId());
-            });
-
-            wsConfig.onError((errorContext) -> {
-                System.out.println("Error: " + errorContext.sessionId());
-            });
-
+        app.ws("/", ws -> {
+            ws.onConnect(socketHandler::connect);
+            ws.onMessage(socketHandler::message);
+            ws.onClose(socketHandler::disconnect);
+            ws.onError(socketHandler::error);
         });
 
         app.start(5001);
